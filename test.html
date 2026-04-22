@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presence API Tester</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin-bottom: 10px;
+      color: #58a6ff;
+    }
+    .subtitle {
+      color: #8b949e;
+      margin-bottom: 30px;
+    }
+    .section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .section h2 {
+      margin-bottom: 15px;
+      color: #58a6ff;
+      font-size: 18px;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #8b949e;
+      font-size: 14px;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #238636;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #2ea043;
+    }
+    button.secondary {
+      background: #21262d;
+      border: 1px solid #30363d;
+    }
+    button.secondary:hover {
+      background: #30363d;
+    }
+    .response {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .status-online {
+      color: #3fb950;
+    }
+    .status-offline {
+      color: #f85149;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🟢 Presence API Tester</h1>
+    <p class="subtitle">Test your Render-hosted presence API endpoints</p>
+
+    <!-- Configuration -->
+    <div class="section">
+      <h2>⚙️ Configuration</h2>
+      <div class="input-group">
+        <label>API Base URL</label>
+        <input type="text" id="apiUrl" value="http://localhost:3000" placeholder="https://presence-api.onrender.com">
+      </div>
+    </div>
+
+    <!-- Update Presence -->
+    <div class="section">
+      <h2>📡 Update Presence</h2>
+      <div class="grid">
+        <div class="input-group">
+          <label>Username</label>
+          <select id="username">
+            <option value="Sayem">Sayem</option>
+            <option value="Shajeda">Shajeda</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Status</label>
+          <select id="status">
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Device Model</label>
+        <input type="text" id="modelName" value="SM-G998B" placeholder="SM-G998B">
+      </div>
+      <button onclick="updatePresence()">Update Presence</button>
+      <div class="response" id="updateResponse"></div>
+    </div>
+
+    <!-- Get Presence -->
+    <div class="section">
+      <h2>👥 Get Presence</h2>
+      <button onclick="getAllPresence()">Get All Users</button>
+      <button onclick="getPresence('Sayem')" class="secondary">Get Sayem</button>
+      <button onclick="getPresence('Shajeda')" class="secondary">Get Shajeda</button>
+      <div class="response" id="presenceResponse"></div>
+    </div>
+
+    <!-- Events -->
+    <div class="section">
+      <h2>📜 Events</h2>
+      <button onclick="getEvents()">Get Recent Events</button>
+      <button onclick="getLatest()" class="secondary">Get Latest Online</button>
+      <div class="response" id="eventsResponse"></div>
+    </div>
+
+    <!-- Health Check -->
+    <div class="section">
+      <h2>❤️ Health Check</h2>
+      <button onclick="healthCheck()">Check Server Health</button>
+      <div class="response" id="healthResponse"></div>
+    </div>
+  </div>
+
+  <script>
+    function getApiUrl() {
+      return document.getElementById('apiUrl').value.replace(/\/$/, '');
+    }
+
+    function displayResponse(elementId, data) {
+      const element = document.getElementById(elementId);
+      element.textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function updatePresence() {
+      const username = document.getElementById('username').value;
+      const status = document.getElementById('status').value;
+      const modelName = document.getElementById('modelName').value;
+
+      try {
+        const response = await fetch(`${getApiUrl()}/api/presence`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username,
+            status,
+            modelName,
+            userAgent: navigator.userAgent,
+            timestamp: Date.now()
+          })
+        });
+
+        const data = await response.json();
+        displayResponse('updateResponse', data);
+      } catch (error) {
+        displayResponse('updateResponse', { error: error.message });
+      }
+    }
+
+    async function getAllPresence() {
+      try {
+        const response = await fetch(`${getApiUrl()}/api/presence`);
+        const data = await response.json();
+        displayResponse('presenceResponse', data);
+      } catch (error) {
+        displayResponse('presenceResponse', { error: error.message });
+      }
+    }
+
+    async function getPresence(username) {
+      try {
+        const response = await fetch(`${getApiUrl()}/api/presence/${username}`);
+        const data = await response.json();
+        displayResponse('presenceResponse', data);
+      } catch (error) {
+        displayResponse('presenceResponse', { error: error.message });
+      }
+    }
+
+    async function getEvents() {
+      try {
+        const response = await fetch(`${getApiUrl()}/api/events`);
+        const data = await response.json();
+        displayResponse('eventsResponse', data);
+      } catch (error) {
+        displayResponse('eventsResponse', { error: error.message });
+      }
+    }
+
+    async function getLatest() {
+      try {
+        const response = await fetch(`${getApiUrl()}/api/latest`);
+        const data = await response.json();
+        displayResponse('eventsResponse', data);
+      } catch (error) {
+        displayResponse('eventsResponse', { error: error.message });
+      }
+    }
+
+    async function healthCheck() {
+      try {
+        const response = await fetch(`${getApiUrl()}/health`);
+        const data = await response.json();
+        displayResponse('healthResponse', data);
+      } catch (error) {
+        displayResponse('healthResponse', { error: error.message });
+      }
+    }
+
+    // Auto-detect if running locally or on Render
+    window.addEventListener('load', () => {
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        document.getElementById('apiUrl').value = window.location.origin;
+      }
+    });
+  </script>
+</body>
+</html>
